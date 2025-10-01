@@ -24,7 +24,6 @@ from sklearn.inspection import permutation_importance
 import sounddevice as sd
 import soundfile as sf
 from feature_extraction_selected import extract_features
-from model import SVM_modeling, LR_modeling
 
 
 def load_data():
@@ -102,7 +101,7 @@ def lr_grid_search(X_train_scaled, y_train, X_test_scaled, y_test):
 def SVM_modeling(X_train_scaled, y_train, X_test_scaled, y_test):
     svm_rbf = SVC(kernel='rbf',  
                 C=10,
-                gamma=0.01,
+                gamma="scale",
                 random_state=42)
     svm_rbf.fit(X_train_scaled, y_train)
     y_pred_rbf = svm_rbf.predict(X_test_scaled)
@@ -111,7 +110,7 @@ def SVM_modeling(X_train_scaled, y_train, X_test_scaled, y_test):
 def LR_modeling(X_train_scaled, y_train, X_test_scaled, y_test):
     logreg = LogisticRegression(
         C=1,
-        class_weight=None,
+        class_weight="balanced",
         multi_class='multinomial',
         penalty='l2',
         solver='lbfgs',
@@ -139,13 +138,13 @@ def plot_confusion_matrix(y_test, y_pred, model_name="Model"):
     plt.title(f"Confusion Matrix - {model_name}")
     plt.show()
 
-def feature_importance(model, X_test_scaled, y_test, X_train):
+def feature_importance(model, X_test_scaled, y_test, X_train, model_name="Model"):
     result = permutation_importance(model, X_test_scaled, y_test, n_repeats=10, random_state=42, n_jobs=-1)
     feature_importance = pd.Series(result.importances_mean, index=X_train.columns).sort_values(ascending=False)
 
     plt.figure(figsize=(12,6))
     feature_importance.plot(kind='bar', color='salmon')
-    plt.title("Permutation Feature Importance (RBF SVM)")
+    plt.title(f"Permutation Feature Importance {model_name}")
     plt.ylabel("Mean decrease in accuracy")
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
@@ -216,8 +215,8 @@ def main():
     plot_confusion_matrix(y_test, y_pred_lr, model_name="Logistic Regression")
 
     # Feature Importance
-    feature_importance(svm_rbf, X_test_scaled, y_test, X_train)
-    feature_importance(logreg, X_test_scaled, y_test, X_train)
+    feature_importance(svm_rbf, X_test_scaled, y_test, X_train, model_name="RBF SVM")
+    feature_importance(logreg, X_test_scaled, y_test, X_train, model_name="Logistic Regression")
 
     # Record audio and predict emotion
     audio_path = record_audio()
